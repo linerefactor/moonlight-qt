@@ -712,7 +712,7 @@ bool Session::initialize()
                                        m_Preferences->enableHdr ? VIDEO_FORMAT_AV1_MAIN10 : VIDEO_FORMAT_AV1_MAIN8,
                                        m_StreamConfig.width,
                                        m_StreamConfig.height,
-                                       m_StreamConfig.fps)) {
+                                       m_StreamConfig.fps) && !m_Preferences->enableHdr && !m_Preferences->enableYUV444) {
             m_SupportedVideoFormats.removeByMask(VIDEO_FORMAT_MASK_AV1);
         }
 #else
@@ -725,7 +725,7 @@ bool Session::initialize()
                                        m_Preferences->enableHdr ? VIDEO_FORMAT_H265_MAIN10 : VIDEO_FORMAT_H265,
                                        m_StreamConfig.width,
                                        m_StreamConfig.height,
-                                       m_StreamConfig.fps)) {
+                                       m_StreamConfig.fps) && !m_Preferences->enableHdr && !m_Preferences->enableYUV444) {
             m_SupportedVideoFormats.removeByMask(VIDEO_FORMAT_MASK_H265);
         }
 
@@ -1004,7 +1004,13 @@ bool Session::validateLaunch(SDL_Window* testWindow)
                                                   m_StreamConfig.width,
                                                   m_StreamConfig.height,
                                                   m_StreamConfig.fps)) {
-                    m_SupportedVideoFormats.removeFirst();
+                    if (m_Preferences->videoDecoderSelection == StreamingPreferences::VDS_FORCE_HARDWARE) {
+                        m_SupportedVideoFormats.removeFirst();
+                    }
+                    else {
+                        emitLaunchWarning(tr("Using software decoding due to your selection to force YUV 4:4:4 without GPU support. This may cause poor streaming performance."));
+                        break;
+                    }
                 }
                 if (!m_SupportedVideoFormats.isEmpty() &&
                     !(m_SupportedVideoFormats.front() & VIDEO_FORMAT_MASK_YUV444)) {
