@@ -1056,10 +1056,10 @@ Flickable {
                             text: "Svenska" // Swedish
                             val: StreamingPreferences.LANG_SV
                         }
-                        /* ListElement {
+                        ListElement {
                             text: "Türkçe" // Turkish
                             val: StreamingPreferences.LANG_TR
-                        } */
+                        }
                         /* ListElement {
                             text: "Українська" // Ukrainian
                             val: StreamingPreferences.LANG_UK
@@ -1107,6 +1107,10 @@ Flickable {
                         /* ListElement {
                             text: "Lietuvių kalba" // Lithuanian
                             val: StreamingPreferences.LANG_LT
+                        } */
+                        /* ListElement {
+                            text: "Eesti" // Estonian
+                            val: StreamingPreferences.LANG_ET
                         } */
                     }
                     // ::onActivated must be used, as it only listens for when the index is changed by a human
