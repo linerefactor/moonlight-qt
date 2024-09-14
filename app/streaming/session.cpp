@@ -1584,6 +1584,24 @@ bool Session::startConnectionAsync()
         }
     }
 
+    // If the user has chosen YUV444 without adjusting the bitrate but the host doesn't
+    // support YUV444 streaming, use the default non-444 bitrate for the stream instead.
+    // This should provide equivalent image quality for YUV420 as the stream would have
+    // had if the host supported YUV444 (though obviously with 4:2:0 subsampling).
+    // If the user has adjusted the bitrate from default, we'll assume they really wanted
+    // that value and not second guess them.
+    if (m_Preferences->enableYUV444 &&
+        !(m_StreamConfig.supportedVideoFormats & VIDEO_FORMAT_MASK_YUV444) &&
+        m_StreamConfig.bitrate == StreamingPreferences::getDefaultBitrate(m_StreamConfig.width,
+                                                                          m_StreamConfig.height,
+                                                                          m_StreamConfig.fps,
+                                                                          true)) {
+        m_StreamConfig.bitrate = StreamingPreferences::getDefaultBitrate(m_StreamConfig.width,
+                                                                         m_StreamConfig.height,
+                                                                         m_StreamConfig.fps,
+                                                                         false);
+    }
+
     int err = LiStartConnection(&hostInfo, &m_StreamConfig, &k_ConnCallbacks,
                                 &m_VideoCallbacks, &m_AudioCallbacks,
                                 NULL, 0, NULL, 0);
@@ -1813,17 +1831,6 @@ void Session::execInternal()
         SDL_VERSION(&info.version);
 
         if (SDL_GetWindowWMInfo(m_Window, &info) && info.subsystem == SDL_SYSWM_WINDOWS) {
-            RECT clientRect;
-            HBRUSH blackBrush;
-
-            // Draw a black background (otherwise our window will be bright white).
-            //
-            // TODO: Remove when SDL does this itself
-            blackBrush = CreateSolidBrush(0);
-            GetClientRect(info.info.win.window, &clientRect);
-            FillRect(info.info.win.hdc, &clientRect, blackBrush);
-            DeleteObject(blackBrush);
-
             // If dark mode is enabled, propagate that to our SDL window
             if (darkModeEnabled) {
                 if (FAILED(DwmSetWindowAttribute(info.info.win.window, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkModeEnabled, sizeof(darkModeEnabled)))) {
@@ -1871,25 +1878,6 @@ void Session::execInternal()
     // Enter full screen if requested
     if (m_IsFullScreen) {
         SDL_SetWindowFullscreen(m_Window, m_FullScreenFlag);
-
-#ifdef Q_OS_WIN32
-        SDL_SysWMinfo info;
-        SDL_VERSION(&info.version);
-
-        // Draw a black background again after entering full-screen to avoid visual artifacts
-        // where the old window decorations were before.
-        //
-        // TODO: Remove when SDL does this itself
-        if (SDL_GetWindowWMInfo(m_Window, &info) && info.subsystem == SDL_SYSWM_WINDOWS) {
-            RECT clientRect;
-            HBRUSH blackBrush;
-
-            blackBrush = CreateSolidBrush(0);
-            GetClientRect(info.info.win.window, &clientRect);
-            FillRect(info.info.win.hdc, &clientRect, blackBrush);
-            DeleteObject(blackBrush);
-        }
-#endif
     }
 
     bool needsFirstEnterCapture = false;
